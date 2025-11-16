@@ -430,7 +430,7 @@ def parse_rate_limit_headers(headers: Dict[str, str]) -> List[RateLimit]:
         :return: A dictionary with interval and intervalNum, or None if not matched.
         """
         match = re.match(
-            r"x-mbx-used-weight-(\d+)([smhd])|x-mbx-order-count-(\d+)([smhd])",
+            r"(?:x-mbx-used-weight-|x-mbx-order-count-|x-sapi-used-ip-weight-|x-sapi-used-uid-weight-)(\d+)([smhd])",
             key,
             re.IGNORECASE,
         )
@@ -476,6 +476,30 @@ def parse_rate_limit_headers(headers: Dict[str, str]) -> List[RateLimit]:
                 rate_limits.append(
                     RateLimit(
                         rateLimitType="ORDERS",
+                        interval=details["interval"],
+                        intervalNum=details["intervalNum"],
+                        count=int(value),
+                        retryAfter=None,
+                    )
+                )
+        elif normalized_key.startswith("x-sapi-used-ip-weight-"):
+            details = parse_interval_details(normalized_key)
+            if details:
+                rate_limits.append(
+                    RateLimit(
+                        rateLimitType="IP_WEIGHT",
+                        interval=details["interval"],
+                        intervalNum=details["intervalNum"],
+                        count=int(value),
+                        retryAfter=None,
+                    )
+                )
+        elif normalized_key.startswith("x-sapi-used-uid-weight-"):
+            details = parse_interval_details(normalized_key)
+            if details:
+                rate_limits.append(
+                    RateLimit(
+                        rateLimitType="UID_WEIGHT",
                         interval=details["interval"],
                         intervalNum=details["intervalNum"],
                         count=int(value),
